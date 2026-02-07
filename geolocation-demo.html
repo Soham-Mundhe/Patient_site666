@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Location Tracker</title>
+  <style>
+    /* Reset and base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #ffffff;
+      color: #1f2937;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* Container - centered, max width for readability */
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 2rem;
+    }
+
+    /* Card for coordinates - white with light sky-blue border */
+    .card {
+      background: #ffffff;
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #0284c7;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .card-value {
+      font-size: 1.125rem;
+      font-family: ui-monospace, monospace;
+      color: #0c4a6e;
+      word-break: break-all;
+    }
+    .card-value.placeholder {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    /* Status message (e.g. "Tracking..." or error) */
+    .status {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 1.5rem;
+      min-height: 1.25rem;
+    }
+    .status.error {
+      color: #b91c1c;
+    }
+    .status.success {
+      color: #0284c7;
+    }
+
+    /* Buttons */
+    .buttons {
+      display: flex;
+      gap: 0.75rem;
+    }
+    button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-start {
+      background: #0ea5e9;
+      color: #ffffff;
+    }
+    .btn-start:hover {
+      background: #0284c7;
+    }
+    .btn-start:disabled {
+      background: #bae6fd;
+      color: #0c4a6e;
+      cursor: not-allowed;
+    }
+    .btn-stop {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-stop:hover {
+      background: #e2e8f0;
+    }
+    .btn-stop:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Live Location Tracker</h1>
+    <p class="subtitle">Uses your browser’s Geolocation API. Permission is requested when you start tracking.</p>
+
+    <!-- Where we show latitude and longitude -->
+    <div class="card">
+      <div class="card-label">Latitude</div>
+      <div id="lat" class="card-value placeholder">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Longitude</div>
+      <div id="lng" class="card-value placeholder">—</div>
+    </div>
+
+    <!-- Status: "Tracking...", errors, or idle -->
+    <p id="status" class="status" aria-live="polite"></p>
+
+    <!-- Start / Stop buttons -->
+    <div class="buttons">
+      <button type="button" id="btnStart" class="btn-start">Start Location</button>
+      <button type="button" id="btnStop" class="btn-stop" disabled>Stop Location</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Elements ---
+    const latEl = document.getElementById('lat');
+    const lngEl = document.getElementById('lng');
+    const statusEl = document.getElementById('status');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+
+    // ID returned by navigator.geolocation.watchPosition (used to stop tracking)
+    let watchId = null;
+
+    /**
+     * Updates the UI with new coordinates.
+     * @param {number} latitude
+     * @param {number} longitude
+     */
+    function updateCoordinates(latitude, longitude) {
+      latEl.textContent = latitude.toFixed(6);
+      lngEl.textContent = longitude.toFixed(6);
+      latEl.classList.remove('placeholder');
+      lngEl.classList.remove('placeholder');
+    }
+
+    /**
+     * Resets coordinates display to placeholder state.
+     */
+    function clearCoordinates() {
+      latEl.textContent = '—';
+      lngEl.textContent = '—';
+      latEl.classList.add('placeholder');
+      lngEl.classList.add('placeholder');
+    }
+
+    /**
+     * Sets the status message and optional CSS class (e.g. 'error', 'success').
+     * @param {string} message
+     * @param {string} [className]
+     */
+    function setStatus(message, className) {
+      statusEl.textContent = message;
+      statusEl.className = 'status' + (className ? ' ' + className : '');
+    }
+
+    /**
+     * Called when we successfully get a position (once or from watch).
+     * @param {GeolocationPosition} position
+     */
+    function onPositionSuccess(position) {
+      const { latitude, longitude } = position.coords;
+      updateCoordinates(latitude, longitude);
+      setStatus('Location updated.', 'success');
+    }
+
+    /**
+     * Called when geolocation fails (permission denied or error).
+     * @param {GeolocationPositionError} error
+     */
+    function onPositionError(error) {
+      // Stop tracking if it was running
+      stopTracking();
+
+      let message = 'Could not get location.';
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          message = 'Location permission denied. Allow access and try again.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          message = 'Location is unavailable.';
+          break;
+        case error.TIMEOUT:
+          message = 'Request timed out. Try again.';
+          break;
+      }
+      setStatus(message, 'error');
+    }
+
+    /**
+     * Starts live location tracking using watchPosition.
+     * The browser will show the permission prompt on first use.
+     */
+    function startTracking() {
+      if (!navigator.geolocation) {
+        setStatus('Geolocation is not supported by this browser.', 'error');
+        return;
+      }
+
+      setStatus('Requesting location… Allow when prompted.');
+      btnStart.disabled = true;
+      btnStop.disabled = false;
+
+      // watchPosition updates in real time as the user moves
+      watchId = navigator.geolocation.watchPosition(
+        onPositionSuccess,
+        onPositionError,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+
+      setStatus('Tracking… Location will update as you move.');
+    }
+
+    /**
+     * Stops live location tracking and resets the UI.
+     */
+    function stopTracking() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      clearCoordinates();
+      setStatus('');
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+    }
+
+    // --- Button listeners ---
+    btnStart.addEventListener('click', startTracking);
+    btnStop.addEventListener('click', stopTracking);
+  </script>
+</body>
+</html>

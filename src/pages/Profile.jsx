@@ -4,8 +4,10 @@ import { userProfile } from '../data/mockData';
 import { User, Phone, Mail, Droplet, LogOut, ChevronRight, Calendar, Users, MapPin } from 'lucide-react';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Profile = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -16,7 +18,7 @@ const Profile = () => {
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
-                <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
+                <h1 className="text-xl font-bold text-gray-900">{t('my_profile')}</h1>
             </header>
 
             <div className="p-4 space-y-6">
@@ -27,7 +29,7 @@ const Profile = () => {
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">{userProfile.name}</h2>
-                        <p className="text-sm text-gray-500">Patient ID: #PAT-2023-88</p>
+                        <p className="text-sm text-gray-500">{t('patient_id')}: #PAT-2023-88</p>
                     </div>
                 </div>
 
@@ -43,15 +45,15 @@ const Profile = () => {
                     </div>
                     <div className="p-4 flex items-center">
                         <Droplet className="h-5 w-5 text-red-400 mr-3" />
-                        <span className="text-gray-700">Blood Group: <span className="font-semibold">{userProfile.bloodGroup}</span></span>
+                        <span className="text-gray-700">{t('blood_group')}: <span className="font-semibold">{userProfile.bloodGroup}</span></span>
                     </div>
                 </div>
 
                 {/* Appointments */}
                 <div>
                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-lg font-bold text-gray-900">My Appointments</h3>
-                        <Link to="/appointments" className="text-sm text-sky-500 font-medium">View all</Link>
+                        <h3 className="text-lg font-bold text-gray-900">{t('my_appointments')}</h3>
+                        <Link to="/appointments" className="text-sm text-sky-500 font-medium">{t('view_all')}</Link>
                     </div>
 
                     <div className="space-y-3">
@@ -78,39 +80,39 @@ const Profile = () => {
                     <Link to="/appointments" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
                         <span className="flex items-center gap-3">
                             <Calendar className="h-5 w-5 text-sky-500" />
-                            My Appointments
+                            {t('my_appointments')}
                         </span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </Link>
                     <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
                         <span className="flex items-center gap-3">
                             <Users className="h-5 w-5 text-sky-500" />
-                            Family profiles
+                            {t('family_profiles')}
                         </span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </button>
                     <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
                         <span className="flex items-center gap-3">
                             <MapPin className="h-5 w-5 text-sky-500" />
-                            Saved addresses
+                            {t('saved_addresses')}
                         </span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </button>
                     <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
-                        <span>Help & Support</span>
+                        <span>{t('help_support')}</span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </button>
                     <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
-                        <span>Settings</span>
+                        <span>{t('settings')}</span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </button>
                 </div>
 
                 <Button variant="danger" className="w-full" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" /> Logout
+                    <LogOut className="h-4 w-4 mr-2" /> {t('logout')}
                 </Button>
 
-                <p className="text-center text-xs text-gray-400 pt-4">App Version 1.0.0</p>
+                <p className="text-center text-xs text-gray-400 pt-4">{t('app_version')} 1.0.0</p>
             </div>
         </div>
     );

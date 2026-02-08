@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Search, Stethoscope, Bell, ChevronRight, ShieldCheck, Calendar, Pill, Phone, BookOpen, Tag } from 'lucide-react';
 import consultationImg from '../assets/consultation.png';
 import hospitalImg from '../assets/hospital.png';
@@ -7,7 +8,10 @@ import ambulanceImg from '../assets/ambulance.png';
 import { alerts, userProfile, healthTips, offers, emergencyContacts } from '../data/mockData';
 import HealthStories from '../components/HealthStories';
 
+import LanguageSwitcher from '../components/LanguageSwitcher';
+
 const Home = () => {
+    const { t } = useTranslation();
     const nextAppointment = userProfile.appointments.find((a) => a.status === 'Confirmed');
 
     return (
@@ -16,13 +20,16 @@ const Home = () => {
             <header className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20">
                 <div className="flex justify-between items-center mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Hello, Soham 👋</h1>
-                        <p className="text-sm text-gray-500">How are you feeling today?</p>
+                        <h1 className="text-2xl font-bold text-gray-900">{t('welcome_message', { name: 'Soham' })}</h1>
+                        <p className="text-sm text-gray-500">{t('feeling_question')}</p>
                     </div>
-                    <Link to="/alerts" className="bg-sky-50 p-2 rounded-full relative">
-                        <Bell className="h-6 w-6 text-sky-600" />
-                        <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <LanguageSwitcher />
+                        <Link to="/alerts" className="bg-sky-50 p-2 rounded-full relative">
+                            <Bell className="h-6 w-6 text-sky-600" />
+                            <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="relative shadow-sm">
@@ -32,7 +39,7 @@ const Home = () => {
                     <input
                         type="text"
                         className="block w-full pl-10 pr-3 py-3 border-none rounded-xl bg-gray-100/50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all font-medium"
-                        placeholder="Search doctors, medicines..."
+                        placeholder={t('search_placeholder')}
                     />
                 </div>
             </header>
@@ -50,7 +57,7 @@ const Home = () => {
                                     <Calendar className="h-6 w-6 text-sky-600" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-medium text-sky-600">Next appointment</p>
+                                    <p className="text-xs font-medium text-sky-600">{t('next_appointment')}</p>
                                     <p className="font-semibold text-gray-900">{nextAppointment.doctor}</p>
                                     <p className="text-sm text-gray-500">{nextAppointment.date} · {nextAppointment.time}</p>
                                 </div>
@@ -69,8 +76,8 @@ const Home = () => {
                                 <img src={consultationImg} alt="Doctor" className="w-10 h-10 object-contain drop-shadow-sm" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Find Doctors</h3>
-                                <p className="text-xs text-sky-600 font-medium mt-1">Book Appointment</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('find_doctors')}</h3>
+                                <p className="text-xs text-sky-600 font-medium mt-1">{t('book_appointment')}</p>
                             </div>
                         </div>
                     </Link>
@@ -82,8 +89,8 @@ const Home = () => {
                                 <img src={hospitalImg} alt="Hospital" className="w-10 h-10 object-contain drop-shadow-sm" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Hospitals</h3>
-                                <p className="text-xs text-indigo-600 font-medium mt-1">Nearby · Map</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('hospitals')}</h3>
+                                <p className="text-xs text-indigo-600 font-medium mt-1">{t('nearby_map')}</p>
                             </div>
                         </div>
                     </Link>
@@ -95,8 +102,8 @@ const Home = () => {
                                 <Pill className="h-6 w-6 text-emerald-600" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Order Medicine</h3>
-                                <p className="text-xs text-emerald-600 font-medium mt-1">Home delivery</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('order_medicine')}</h3>
+                                <p className="text-xs text-emerald-600 font-medium mt-1">{t('home_delivery')}</p>
                             </div>
                         </div>
                     </Link>
@@ -108,8 +115,8 @@ const Home = () => {
                                 <img src={healthCheckImg} alt="Lab" className="w-10 h-10 object-contain drop-shadow-sm" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Lab Tests</h3>
-                                <p className="text-xs text-teal-600 font-medium mt-1">Home collection</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('lab_tests')}</h3>
+                                <p className="text-xs text-teal-600 font-medium mt-1">{t('home_collection')}</p>
                             </div>
                         </div>
                     </Link>
@@ -121,8 +128,8 @@ const Home = () => {
                                 <Calendar className="h-6 w-6 text-violet-600" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Appointments</h3>
-                                <p className="text-xs text-violet-600 font-medium mt-1">Upcoming & past</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('appointments')}</h3>
+                                <p className="text-xs text-violet-600 font-medium mt-1">{t('upcoming_past')}</p>
                             </div>
                         </div>
                     </Link>
@@ -134,8 +141,8 @@ const Home = () => {
                                 <img src={ambulanceImg} alt="Ambulance" className="w-10 h-10 object-contain drop-shadow-sm" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900 leading-tight">Ambulance</h3>
-                                <p className="text-xs text-rose-600 font-medium mt-1">Emergency 102</p>
+                                <h3 className="font-bold text-gray-900 leading-tight">{t('ambulance')}</h3>
+                                <p className="text-xs text-rose-600 font-medium mt-1">{t('emergency')} 102</p>
                             </div>
                         </div>
                     </a>
@@ -145,10 +152,10 @@ const Home = () => {
                 <Link to="/lab-tests" className="block bg-gradient-to-r from-sky-500 to-indigo-600 rounded-2xl p-5 shadow-lg relative overflow-hidden text-white">
                     <div className="relative z-10 flex items-center justify-between">
                         <div className="max-w-[60%]">
-                            <h3 className="text-lg font-bold mb-1">Full Body Checkup</h3>
-                            <p className="text-sm text-sky-100 mb-3">60+ tests. Home collection.</p>
+                            <h3 className="text-lg font-bold mb-1">{t('full_body_checkup')}</h3>
+                            <p className="text-sm text-sky-100 mb-3">{t('tests_count')}. {t('home_collection')}.</p>
                             <span className="inline-block bg-white text-sky-600 text-xs font-bold px-4 py-2 rounded-lg shadow-sm">
-                                Book at ₹999
+                                {t('book_at', { price: '₹999' })}
                             </span>
                         </div>
                         <ShieldCheck size={80} className="opacity-30" />
@@ -158,9 +165,9 @@ const Home = () => {
                 {/* Today's offers */}
                 <div>
                     <div className="flex justify-between items-center mb-3 px-1">
-                        <h2 className="text-lg font-bold text-gray-900">Offers for you</h2>
+                        <h2 className="text-lg font-bold text-gray-900">{t('offers_title')}</h2>
                         <span className="text-sm text-gray-500 flex items-center gap-1">
-                            <Tag className="h-4 w-4" /> {offers.length} active
+                            <Tag className="h-4 w-4" /> {offers.length} {t('active_offers')}
                         </span>
                     </div>
                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -177,9 +184,9 @@ const Home = () => {
                 {/* Specializations */}
                 <div>
                     <div className="flex justify-between items-center mb-3 px-1">
-                        <h2 className="text-lg font-bold text-gray-900">Specializations</h2>
+                        <h2 className="text-lg font-bold text-gray-900">{t('specializations')}</h2>
                         <Link to="/doctors" className="text-sm text-sky-500 font-medium flex items-center hover:underline">
-                            View all <ChevronRight size={16} />
+                            {t('view_all')} <ChevronRight size={16} />
                         </Link>
                     </div>
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
@@ -197,9 +204,9 @@ const Home = () => {
                 {/* Health tips */}
                 <div>
                     <div className="flex justify-between items-center mb-3 px-1">
-                        <h2 className="text-lg font-bold text-gray-900">Health tips</h2>
+                        <h2 className="text-lg font-bold text-gray-900">{t('health_tips')}</h2>
                         <Link to="/health-tips" className="text-sm text-sky-500 font-medium flex items-center hover:underline">
-                            See all <ChevronRight size={16} />
+                            {t('see_all')} <ChevronRight size={16} />
                         </Link>
                     </div>
                     <div className="space-y-3">
@@ -225,7 +232,7 @@ const Home = () => {
                 {/* Emergency quick dial */}
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
                     <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-red-500" /> Emergency
+                        <Phone className="h-4 w-4 text-red-500" /> {t('emergency')}
                     </h3>
                     <div className="grid grid-cols-3 gap-2">
                         {emergencyContacts.map((c) => (
@@ -244,8 +251,8 @@ const Home = () => {
                 {/* Health Alerts preview */}
                 <div>
                     <div className="flex justify-between items-center mb-3 px-1">
-                        <h2 className="text-lg font-bold text-gray-900">Health Alerts</h2>
-                        <Link to="/alerts" className="text-sm text-sky-500 font-medium hover:underline">See all</Link>
+                        <h2 className="text-lg font-bold text-gray-900">{t('health_alerts')}</h2>
+                        <Link to="/alerts" className="text-sm text-sky-500 font-medium hover:underline">{t('see_all')}</Link>
                     </div>
                     <Link to="/alerts" className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                         <div className="flex items-start space-x-3">

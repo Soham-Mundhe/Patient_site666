@@ -185,7 +185,7 @@ function Map() {
     ? [userLocation.lat, userLocation.lng]
     : DEFAULT_CENTER;
 
-  const openInMaps = (lat, lng, name) => {
+  const openInMaps = (lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     window.open(url, '_blank');
   };
@@ -306,7 +306,7 @@ function Map() {
                   )}
                   <button
                     type="button"
-                    onClick={() => openInMaps(place.lat, place.lng, place.name)}
+                    onClick={() => openInMaps(place.lat, place.lng)}
                     className="mt-2 w-full bg-sky-500 text-white text-xs py-1.5 rounded-md font-medium hover:bg-sky-600 transition-colors flex items-center justify-center gap-1"
                   >
                     <Navigation className="h-3 w-3" /> Open in Google Maps

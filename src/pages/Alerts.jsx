@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { alerts } from '../data/mockData';
 import { AlertTriangle, Info, CheckCircle } from 'lucide-react';
+import { trackPageView } from '../utils/analytics';
 
 const Alerts = () => {
+    useEffect(() => {
+        trackPageView('Alerts');
+    }, []);
     const getIcon = (level) => {
         switch (level) {
             case 'warning': return <AlertTriangle className="h-5 w-5 text-orange-500" />;

@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { userProfile } from '../data/mockData';
 import { Calendar, Clock, ChevronRight, Video, CheckCircle } from 'lucide-react';
 import Button from '../components/Button';
+import { trackPageView } from '../utils/analytics';
 
 const Appointments = () => {
+    useEffect(() => {
+        trackPageView('Appointments');
+    }, []);
     const [activeTab, setActiveTab] = useState('upcoming');
     const upcoming = userProfile.appointments.filter((a) => a.status === 'Confirmed');
     const past = userProfile.appointments.filter((a) => a.status === 'Completed');

@@ -1,15 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
-import { Mail, Smartphone, User, Lock } from 'lucide-react';
+import { Mail, Smartphone, User, Lock, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { trackEvent, trackPageView } from '../utils/analytics';
 
 const Register = () => {
+    useEffect(() => {
+        trackPageView('Register');
+    }, []);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { signup } = useAuth();
     const navigate = useNavigate();
 
-    const handleRegister = (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
-        // Mock registration logic
-        navigate('/home');
+
+        try {
+            setError('');
+            setLoading(true);
+            await signup(email, password);
+            trackEvent('sign_up', { method: 'email' });
+            navigate('/home');
+        } catch (err) {
+            setError('Failed to create an account. ' + err.message);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -38,6 +60,12 @@ const Register = () => {
                     </div>
 
                     <form onSubmit={handleRegister} className="space-y-4">
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-100 italic">
+                                <AlertCircle size={16} />
+                                {error}
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                             <div className="relative">
@@ -48,6 +76,8 @@ const Register = () => {
                                     type="text"
                                     placeholder="John Doe"
                                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
                                     required
                                 />
                             </div>
@@ -63,7 +93,6 @@ const Register = () => {
                                     type="tel"
                                     placeholder="+91 98765 43210"
                                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
-                                    required
                                 />
                             </div>
                         </div>
@@ -78,6 +107,8 @@ const Register = () => {
                                     type="email"
                                     placeholder="you@example.com"
                                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
                             </div>
@@ -93,14 +124,16 @@ const Register = () => {
                                     type="password"
                                     placeholder="Create a password"
                                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
 
 
-                        <Button type="submit" className="w-full py-3 text-lg shadow-md hover:shadow-lg transition-shadow mt-2">
-                            Register
+                        <Button type="submit" disabled={loading} className="w-full py-3 text-lg shadow-md hover:shadow-lg transition-shadow mt-2">
+                            {loading ? 'Creating Account...' : 'Register'}
                         </Button>
                     </form>
 

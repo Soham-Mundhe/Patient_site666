@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DoctorCard from '../components/DoctorCard';
 import { doctors } from '../data/mockData';
 import { Search } from 'lucide-react';
+import { trackPageView } from '../utils/analytics';
 
 const SPECIALIZATIONS = ['All', 'General Physician', 'Cardiologist', 'Dermatologist', 'Pediatrician', 'Gynecologist'];
 
 const Doctors = () => {
+    useEffect(() => {
+        trackPageView('Doctors');
+    }, []);
     const [search, setSearch] = useState('');
     const [spec, setSpec] = useState('All');
 

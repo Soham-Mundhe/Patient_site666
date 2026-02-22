@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { fetchNearbyHealthcare } from '../utils/overpass';
 import { Navigation, MapPin, Loader2, AlertCircle, Locate } from 'lucide-react';
+import { trackPageView } from '../utils/analytics';
 
 const DEFAULT_CENTER = [19.076, 72.8777];
 const DEFAULT_ZOOM = 13;
@@ -133,6 +134,10 @@ function Map() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const [placesLoading, setPlacesLoading] = useState(false);
+
+  useEffect(() => {
+    trackPageView('Map');
+  }, []);
 
   const loadPlaces = useCallback(async (lat, lng) => {
     setPlacesLoading(true);

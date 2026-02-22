@@ -1,18 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { userProfile } from '../data/mockData';
-import { User, Phone, Mail, Droplet, LogOut, ChevronRight, Calendar, Users, MapPin } from 'lucide-react';
+import { User, Phone, Mail, Droplet, LogOut, ChevronRight, Calendar, Users, MapPin, FileText } from 'lucide-react';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import { trackEvent, trackPageView } from '../utils/analytics';
 
 const Profile = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { currentUser, logout } = useAuth();
 
-    const handleLogout = () => {
-        // Mock logout
-        navigate('/');
+    useEffect(() => {
+        trackPageView('Profile');
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            trackEvent('logout');
+            navigate('/');
+        } catch (err) {
+            console.error('Failed to log out', err);
+        }
     };
 
     return (
@@ -28,8 +40,10 @@ const Profile = () => {
                         <User size={32} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900">{userProfile.name}</h2>
-                        <p className="text-sm text-gray-500">{t('patient_id')}: #PAT-2023-88</p>
+                        <h2 className="text-lg font-bold text-gray-900">
+                            {currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User'}
+                        </h2>
+                        <p className="text-sm text-gray-500">{currentUser?.email || currentUser?.phoneNumber}</p>
                     </div>
                 </div>
 
@@ -81,6 +95,13 @@ const Profile = () => {
                         <span className="flex items-center gap-3">
                             <Calendar className="h-5 w-5 text-sky-500" />
                             {t('my_appointments')}
+                        </span>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </Link>
+                    <Link to="/documents" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
+                        <span className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-sky-500" />
+                            My Documents
                         </span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </Link>

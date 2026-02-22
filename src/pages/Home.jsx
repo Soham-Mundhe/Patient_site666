@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Search, Stethoscope, Bell, ChevronRight, ShieldCheck, Calendar, Pill, Phone, BookOpen, Tag } from 'lucide-react';
@@ -9,10 +10,19 @@ import { alerts, userProfile, healthTips, offers, emergencyContacts } from '../d
 import HealthStories from '../components/HealthStories';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { trackPageView } from '../utils/analytics';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
     const { t } = useTranslation();
+    const { currentUser } = useAuth();
     const nextAppointment = userProfile.appointments.find((a) => a.status === 'Confirmed');
+
+    useEffect(() => {
+        trackPageView('Home');
+    }, []);
+
+    const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
 
     return (
         <div className="bg-gray-50 min-h-screen pb-24">
@@ -20,7 +30,7 @@ const Home = () => {
             <header className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20">
                 <div className="flex justify-between items-center mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{t('welcome_message', { name: 'Soham' })}</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">{t('welcome_message', { name: displayName })}</h1>
                         <p className="text-sm text-gray-500">{t('feeling_question')}</p>
                     </div>
                     <div className="flex items-center gap-3">

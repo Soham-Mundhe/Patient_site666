@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TestTube, Home, Shield } from 'lucide-react';
 import { labTestPackages } from '../data/mockData';
 import Button from '../components/Button';
+import { trackPageView } from '../utils/analytics';
 
 const LabTests = () => {
+    useEffect(() => {
+        trackPageView('LabTests');
+    }, []);
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">

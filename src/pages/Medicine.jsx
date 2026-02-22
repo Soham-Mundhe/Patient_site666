@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, ChevronRight, Pill } from 'lucide-react';
 import { medicineCategories, popularMedicines } from '../data/mockData';
+import { trackPageView } from '../utils/analytics';
 
 const Medicine = () => {
     const [query, setQuery] = useState('');
+
+    useEffect(() => {
+        trackPageView('Medicine');
+    }, []);
 
     return (
         <div className="bg-gray-50 min-h-screen pb-20">

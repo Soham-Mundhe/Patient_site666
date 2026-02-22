@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { healthTips } from '../data/mockData';
 import { BookOpen, Clock } from 'lucide-react';
+import { trackPageView } from '../utils/analytics';
 
 const HealthTips = () => {
+    useEffect(() => {
+        trackPageView('HealthTips');
+    }, []);
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">

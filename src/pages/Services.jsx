@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Pill, TestTube, Calendar, BookOpen, ChevronRight } from 'lucide-react';
+import { trackPageView } from '../utils/analytics';
 
 const services = [
     { name: 'Order Medicine', path: '/medicine', icon: Pill, desc: 'Home delivery', iconClass: 'bg-emerald-50 text-emerald-600' },
@@ -10,6 +11,9 @@ const services = [
 ];
 
 const Services = () => {
+    useEffect(() => {
+        trackPageView('Services');
+    }, []);
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">

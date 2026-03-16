@@ -5,30 +5,36 @@ import Button from '../components/Button';
 
 const HealthProfile = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    patient_id: 'P' + Math.floor(1000 + Math.random() * 9000), 
-    full_name: '',
-    age: '',
-    gender: 'Male',
-    phone_number: '',
-    chronic_diseases: '',
-    previous_hospital_admissions: '0',
-    previous_surgeries: 'No',
-    family_medical_history: '',
-    current_medications: '',
-    smoking_status: 'No',
-    alcohol_consumption: 'No',
-    physical_activity_level: 'Medium',
-    height: '',
-    weight: '',
-    bmi: '',
-    known_allergies: ''
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem('patientHealthProfileRisk');
+    if (savedData) {
+      return JSON.parse(savedData);
+    }
+    return {
+      patient_id: 'P' + Math.floor(1000 + Math.random() * 9000), 
+      full_name: '',
+      age: '',
+      gender: 'Male',
+      phone_number: '',
+      chronic_diseases: '',
+      previous_hospital_admissions: '0',
+      previous_surgeries: 'No',
+      family_medical_history: '',
+      current_medications: '',
+      smoking_status: 'No',
+      alcohol_consumption: 'No',
+      physical_activity_level: 'Medium',
+      height: '',
+      weight: '',
+      bmi: '',
+      known_allergies: ''
+    };
   });
 
   useEffect(() => {
-    const savedData = localStorage.getItem('patientHealthProfileRisk');
-    if (savedData) {
-      setFormData(JSON.parse(savedData));
+    // Save initial generated ID if it's the first time
+    if (!localStorage.getItem('patientHealthProfileRisk')) {
+       localStorage.setItem('patientHealthProfileRisk', JSON.stringify(formData));
     }
   }, []);
 

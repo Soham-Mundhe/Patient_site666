@@ -28,6 +28,9 @@ export function AuthProvider({ children }) {
     }
 
     function logout() {
+        localStorage.removeItem('patientHealthProfileRisk');
+        localStorage.removeItem('patientHealthProfileNew');
+        localStorage.removeItem('patientHealthProfile');
         return signOut(auth);
     }
 

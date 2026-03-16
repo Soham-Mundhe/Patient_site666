@@ -14,6 +14,8 @@ import Services from './pages/Services';
 import MyDocuments from './pages/MyDocuments';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import HealthProfile from './pages/HealthProfile';
+import QRScanner from './pages/QRScanner';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -40,6 +42,9 @@ function App() {
               <Route path="/documents" element={<MyDocuments />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
+
+            <Route path="/health-profile" element={<HealthProfile />} />
+            <Route path="/qr-scan" element={<QRScanner />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

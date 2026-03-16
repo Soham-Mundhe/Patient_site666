@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Stethoscope, Bell, ChevronRight, ShieldCheck, Calendar, Pill, Phone, BookOpen, Tag } from 'lucide-react';
+import { Search, Stethoscope, Bell, ChevronRight, ShieldCheck, Calendar, Pill, Phone, BookOpen, Tag, QrCode } from 'lucide-react';
 import consultationImg from '../assets/consultation.png';
 import hospitalImg from '../assets/hospital.png';
 import healthCheckImg from '../assets/health_check.png';
@@ -35,7 +35,10 @@ const Home = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <LanguageSwitcher />
-                        <Link to="/alerts" className="bg-sky-50 p-2 rounded-full relative">
+                        <Link to="/qr-scan" className="bg-sky-50 p-2 rounded-full relative hover:bg-sky-100 transition-colors">
+                            <QrCode className="h-6 w-6 text-sky-600" />
+                        </Link>
+                        <Link to="/alerts" className="bg-sky-50 p-2 rounded-full relative hover:bg-sky-100 transition-colors">
                             <Bell className="h-6 w-6 text-sky-600" />
                             <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                         </Link>

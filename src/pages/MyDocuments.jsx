@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { storage, auth } from '../firebase';
-import { ref, listAll, getDownloadURL, getMetadata, deleteObject } from 'firebase/storage';
-import { FileText, Trash2, ExternalLink, PlusCircle, Search, Filter, Loader2 } from 'lucide-react';
+import { auth } from '../firebase';
+import { FileText, Trash2, ExternalLink, PlusCircle, Search, Filter, Loader2, X } from 'lucide-react';
 import DocumentUpload from '../components/DocumentUpload';
 
 const MyDocuments = () => {
@@ -16,26 +15,9 @@ const MyDocuments = () => {
 
         setLoading(true);
         try {
-            const listRef = ref(storage, `documents/${user.uid}`);
-            const res = await listAll(listRef);
-
-            const docsData = await Promise.all(
-                res.items.map(async (itemRef) => {
-                    const url = await getDownloadURL(itemRef);
-                    const metadata = await getMetadata(itemRef);
-                    return {
-                        id: itemRef.name,
-                        name: itemRef.name.split('_').slice(1).join('_') || itemRef.name, // Remove timestamp prefix
-                        fullPath: itemRef.fullPath,
-                        url,
-                        createdAt: metadata.timeCreated,
-                        size: (metadata.size / 1024).toFixed(2) + ' KB'
-                    };
-                })
-            );
-
-            // Sort by creation date (newest first)
-            setDocuments(docsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            const storageKey = `documents_${user.uid}`;
+            const existingDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            setDocuments(existingDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
         } catch (error) {
             console.error("Error fetching documents:", error);
         } finally {
@@ -51,9 +33,13 @@ const MyDocuments = () => {
         if (!window.confirm("Are you sure you want to delete this document?")) return;
 
         try {
-            const docRef = ref(storage, fullPath);
-            await deleteObject(docRef);
-            setDocuments(documents.filter(doc => doc.fullPath !== fullPath));
+            const user = auth.currentUser;
+            const storageKey = `documents_${user.uid}`;
+            const existingDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const updatedDocs = existingDocs.filter(doc => doc.fullPath !== fullPath);
+            localStorage.setItem(storageKey, JSON.stringify(updatedDocs));
+            
+            setDocuments(updatedDocs);
         } catch (error) {
             console.error("Error deleting document:", error);
             alert("Failed to delete document.");

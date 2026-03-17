@@ -41,7 +41,7 @@ const Profile = () => {
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">
-                            {currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User'}
+                            {currentUser?.displayName || userProfile.name || currentUser?.phoneNumber || 'User'}
                         </h2>
                         <p className="text-sm text-gray-500">{currentUser?.email || currentUser?.phoneNumber}</p>
                     </div>

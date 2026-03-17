@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import { Mail, Smartphone, User, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { trackEvent, trackPageView } from '../utils/analytics';
+import { updateProfile } from 'firebase/auth';
 
 const Register = () => {
     useEffect(() => {
@@ -14,7 +15,7 @@ const Register = () => {
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { signup } = useAuth();
+    const { signup, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
     const handleRegister = async (e) => {
@@ -23,11 +24,31 @@ const Register = () => {
         try {
             setError('');
             setLoading(true);
-            await signup(email, password);
+            const userCredential = await signup(email, password);
+            if (userCredential?.user) {
+                await updateProfile(userCredential.user, {
+                    displayName: fullName
+                });
+            }
             trackEvent('sign_up', { method: 'email' });
             navigate('/home');
         } catch (err) {
             setError('Failed to create an account. ' + err.message);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleSignIn = async () => {
+        try {
+            setError('');
+            setLoading(true);
+            await loginWithGoogle();
+            trackEvent('sign_up', { method: 'google' });
+            navigate('/home');
+        } catch (err) {
+            setError('Failed to sign in with Google. ' + err.message);
             console.error(err);
         } finally {
             setLoading(false);
@@ -45,7 +66,11 @@ const Register = () => {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
 
                     {/* Social Login */}
-                    <button className="w-full flex items-center justify-center space-x-2 border border-gray-300 rounded-lg py-2.5 px-4 mb-6 hover:bg-gray-50 transition-colors">
+                    <button 
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center space-x-2 border border-gray-300 rounded-lg py-2.5 px-4 mb-6 hover:bg-gray-50 transition-colors disabled:opacity-50">
                         <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
                         <span className="text-sm font-medium text-gray-700">Continue with Google</span>
                     </button>

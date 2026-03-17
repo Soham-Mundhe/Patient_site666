@@ -5,7 +5,9 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     sendPasswordResetEmail,
-    signInWithPhoneNumber
+    signInWithPhoneNumber,
+    GoogleAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -47,9 +49,15 @@ export function AuthProvider({ children }) {
         return unsubscribe;
     }, []);
 
+    function loginWithGoogle() {
+        const provider = new GoogleAuthProvider();
+        return signInWithPopup(auth, provider);
+    }
+
     const value = {
         currentUser,
         login,
+        loginWithGoogle,
         signup,
         logout,
         resetPassword,

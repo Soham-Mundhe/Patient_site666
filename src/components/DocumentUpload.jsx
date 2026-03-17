@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { storage, auth } from '../firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { auth } from '../firebase';
 import { Upload, X, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 
 const DocumentUpload = ({ onUploadSuccess }) => {
@@ -13,9 +12,9 @@ const DocumentUpload = ({ onUploadSuccess }) => {
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            // Basic validation: limit size to 5MB
-            if (selectedFile.size > 5 * 1024 * 1024) {
-                setError("File size exceeds 5MB limit.");
+            // Basic validation: limit size to 2MB for local storage
+            if (selectedFile.size > 2 * 1024 * 1024) {
+                setError("File size exceeds 2MB limit for local storage.");
                 setFile(null);
                 return;
             }
@@ -37,41 +36,54 @@ const DocumentUpload = ({ onUploadSuccess }) => {
 
         setUploading(true);
         setError(null);
+        setProgress(0);
 
-        const storageRef = ref(storage, `documents/${user.uid}/${Date.now()}_${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result;
+            const newDoc = {
+                id: Date.now().toString(),
+                name: file.name,
+                fullPath: `localDocs/${user.uid}/${Date.now()}_${file.name}`,
+                url: base64String,
+                createdAt: new Date().toISOString(),
+                size: (file.size / 1024).toFixed(2) + ' KB'
+            };
 
-        uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setProgress(Math.round(progress));
-            },
-            (error) => {
-                console.error("Upload error:", error);
-                setError("Failed to upload file. Please try again.");
+            try {
+                const storageKey = `documents_${user.uid}`;
+                const existingDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                existingDocs.push(newDoc);
+                localStorage.setItem(storageKey, JSON.stringify(existingDocs));
+
                 setUploading(false);
-            },
-            async () => {
-                try {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    setUploading(false);
-                    setSuccess(true);
-                    setFile(null);
-                    if (onUploadSuccess) {
-                        onUploadSuccess({
-                            name: file.name,
-                            url: downloadURL,
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                } catch (err) {
-                    console.error("Error getting download URL:", err);
-                    setError("Upload completed but failed to get file URL.");
-                    setUploading(false);
+                setSuccess(true);
+                setFile(null);
+                if (onUploadSuccess) {
+                    onUploadSuccess(newDoc);
                 }
+            } catch (err) {
+                console.error("Local storage error:", err);
+                setError("Failed to save locally. File might be too large (Browser limit).");
+                setUploading(false);
             }
-        );
+        };
+        
+        reader.onerror = () => {
+            setError("Failed to read file.");
+            setUploading(false);
+        };
+
+        // Simulate progress for better UX
+        let prog = 0;
+        const interval = setInterval(() => {
+            prog += 20;
+            setProgress(prog);
+            if (prog >= 100) {
+                clearInterval(interval);
+                reader.readAsDataURL(file); // Actually read and save
+            }
+        }, 100);
     };
 
     return (
@@ -99,7 +111,7 @@ const DocumentUpload = ({ onUploadSuccess }) => {
                                     "Click or drag to upload (PDF, JPG, PNG)"
                                 )}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">Max size: 5MB</p>
+                            <p className="text-xs text-gray-400 mt-1">Max size: 2MB (Local Storage)</p>
                         </div>
                     </div>
                 )}

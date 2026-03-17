@@ -22,7 +22,7 @@ const Home = () => {
         trackPageView('Home');
     }, []);
 
-    const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
+    const displayName = currentUser?.displayName || userProfile.name || currentUser?.phoneNumber || 'User';
 
     return (
         <div className="bg-gray-50 min-h-screen pb-24">

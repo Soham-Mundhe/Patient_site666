@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase';
+import { ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { auth, storage } from '../firebase';
 import { Upload, X, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const DocumentUpload = ({ onUploadSuccess }) => {
+    const [uploadMode, setUploadMode] = useState('firebase'); // 'firebase' or 'google-drive'
+    const { googleToken, loginWithGoogle } = useAuth();
     const [file, setFile] = useState(null);
     const [progress, setProgress] = useState(0);
     const [uploading, setUploading] = useState(false);
@@ -12,9 +16,9 @@ const DocumentUpload = ({ onUploadSuccess }) => {
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            // Basic validation: limit size to 2MB for local storage
-            if (selectedFile.size > 2 * 1024 * 1024) {
-                setError("File size exceeds 2MB limit for local storage.");
+            // Limit size to 10MB
+            if (selectedFile.size > 10 * 1024 * 1024) {
+                setError("File size exceeds 10MB limit.");
                 setFile(null);
                 return;
             }
@@ -25,7 +29,51 @@ const DocumentUpload = ({ onUploadSuccess }) => {
         }
     };
 
-    const handleUpload = () => {
+    const uploadToGoogleDrive = async (file, token) => {
+        const metadata = {
+            name: file.name,
+            mimeType: file.type,
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+            method: 'POST',
+            headers: new Headers({ 'Authorization': 'Bearer ' + token }),
+            body: form,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Google Drive upload failed');
+        }
+
+        const driveFile = await response.json();
+
+        // SHARE THE FILE: Set permission to "anyone with the link" so doctors can see it
+        try {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${driveFile.id}/permissions`, {
+                method: 'POST',
+                headers: new Headers({ 
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }),
+                body: JSON.stringify({
+                    role: 'reader',
+                    type: 'anyone'
+                }),
+            });
+        } catch (shareErr) {
+            console.error("Failed to set Google Drive permissions:", shareErr);
+            // We don't throw here, as the file is still uploaded, just might not be shared yet
+        }
+
+        return driveFile;
+    };
+
+    const handleUpload = async () => {
         if (!file) return;
 
         const user = auth.currentUser;
@@ -34,64 +82,92 @@ const DocumentUpload = ({ onUploadSuccess }) => {
             return;
         }
 
+        // Check Google Drive token if in Drive mode
+        if (uploadMode === 'google-drive' && !googleToken) {
+            setError("Google Drive access required. Please re-login with Google.");
+            return;
+        }
+
         setUploading(true);
         setError(null);
-        setProgress(0);
+        setProgress(10);
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result;
+        const timestamp = Date.now();
+        const baseDocInfo = {
+            id: timestamp.toString(),
+            name: file.name,
+            createdAt: new Date().toISOString(),
+            size: (file.size / 1024).toFixed(2) + ' KB',
+        };
+
+        try {
+            let finalUrl = '';
+            let storagePath = '';
+
+            if (uploadMode === 'firebase') {
+                const cleanFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+                storagePath = `documents/${user.uid}/${timestamp}_${cleanFileName}`;
+                const storageRef = ref(storage, storagePath);
+                
+                const snapshot = await uploadBytes(storageRef, file);
+                setProgress(60);
+                finalUrl = await getDownloadURL(snapshot.ref);
+            } else {
+                // Google Drive Upload
+                const driveFile = await uploadToGoogleDrive(file, googleToken);
+                setProgress(80);
+                finalUrl = driveFile.webViewLink;
+                // Note: We might want to make it public or shared, but for now we take the link
+            }
+
             const newDoc = {
-                id: Date.now().toString(),
-                name: file.name,
-                fullPath: `localDocs/${user.uid}/${Date.now()}_${file.name}`,
-                url: base64String,
-                createdAt: new Date().toISOString(),
-                size: (file.size / 1024).toFixed(2) + ' KB'
+                ...baseDocInfo,
+                fullPath: storagePath || 'google-drive',
+                url: finalUrl,
+                provider: uploadMode
             };
 
-            try {
-                const storageKey = `documents_${user.uid}`;
-                const existingDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                existingDocs.push(newDoc);
-                localStorage.setItem(storageKey, JSON.stringify(existingDocs));
+            // Save to localStorage
+            const storageKey = `documents_${user.uid}`;
+            const existingDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            localStorage.setItem(storageKey, JSON.stringify([newDoc, ...existingDocs]));
 
-                setUploading(false);
-                setSuccess(true);
-                setFile(null);
-                if (onUploadSuccess) {
-                    onUploadSuccess(newDoc);
-                }
-            } catch (err) {
-                console.error("Local storage error:", err);
-                setError("Failed to save locally. File might be too large (Browser limit).");
-                setUploading(false);
-            }
-        };
-        
-        reader.onerror = () => {
-            setError("Failed to read file.");
+            setProgress(100);
             setUploading(false);
-        };
-
-        // Simulate progress for better UX
-        let prog = 0;
-        const interval = setInterval(() => {
-            prog += 20;
-            setProgress(prog);
-            if (prog >= 100) {
-                clearInterval(interval);
-                reader.readAsDataURL(file); // Actually read and save
+            setSuccess(true);
+            setFile(null);
+            if (onUploadSuccess) {
+                onUploadSuccess(newDoc);
             }
-        }, 100);
+        } catch (err) {
+            console.error("Upload failed:", err);
+            setUploading(false);
+            setError("Upload failed: " + (err.message || "Unknown error"));
+        }
     };
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
                 <Upload className="text-sky-500" size={20} />
                 Upload Document
             </h3>
+
+            {/* Mode Toggle */}
+            <div className="flex bg-gray-50 p-1 rounded-xl mb-4 text-xs font-medium">
+                <button 
+                    onClick={() => setUploadMode('firebase')}
+                    className={`flex-1 py-2 rounded-lg transition-all ${uploadMode === 'firebase' ? 'bg-white shadow-sm text-sky-600' : 'text-gray-500'}`}
+                >
+                    Firebase Cloud
+                </button>
+                <button 
+                    onClick={() => setUploadMode('google-drive')}
+                    className={`flex-1 py-2 rounded-lg transition-all ${uploadMode === 'google-drive' ? 'bg-white shadow-sm text-sky-600' : 'text-gray-500'}`}
+                >
+                    Google Drive
+                </button>
+            </div>
 
             <div className="space-y-4">
                 {!uploading && !success && (
@@ -111,7 +187,7 @@ const DocumentUpload = ({ onUploadSuccess }) => {
                                     "Click or drag to upload (PDF, JPG, PNG)"
                                 )}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">Max size: 2MB (Local Storage)</p>
+                            <p className="text-xs text-gray-400 mt-1">Max size: 10MB · Stored securely in Firebase</p>
                         </div>
                     </div>
                 )}
@@ -119,7 +195,7 @@ const DocumentUpload = ({ onUploadSuccess }) => {
                 {uploading && (
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
-                            <span>Uploading...</span>
+                            <span>Uploading to secure cloud...</span>
                             <span>{progress}%</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-2">

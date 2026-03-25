@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [googleToken, setGoogleToken] = useState(localStorage.getItem('google_drive_token') || null);
+
     function signup(email, password) {
         return createUserWithEmailAndPassword(auth, email, password);
     }
@@ -33,6 +35,8 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('patientHealthProfileRisk');
         localStorage.removeItem('patientHealthProfileNew');
         localStorage.removeItem('patientHealthProfile');
+        localStorage.removeItem('google_drive_token');
+        setGoogleToken(null);
         return signOut(auth);
     }
 
@@ -49,13 +53,26 @@ export function AuthProvider({ children }) {
         return unsubscribe;
     }, []);
 
-    function loginWithGoogle() {
+    async function loginWithGoogle() {
         const provider = new GoogleAuthProvider();
-        return signInWithPopup(auth, provider);
+        provider.addScope('https://www.googleapis.com/auth/drive.file');
+        try {
+            const result = await signInWithPopup(auth, provider);
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const token = credential.accessToken;
+            setGoogleToken(token);
+            localStorage.setItem('google_drive_token', token);
+            return result;
+        } catch (error) {
+            console.error("Google Login Error:", error);
+            throw error;
+        }
     }
 
     const value = {
         currentUser,
+        googleToken,
         login,
         loginWithGoogle,
         signup,

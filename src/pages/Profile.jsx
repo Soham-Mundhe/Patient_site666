@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { userProfile } from '../data/mockData';
-import { User, Phone, Mail, Droplet, LogOut, ChevronRight, Calendar, Users, MapPin, FileText, Camera, Activity } from 'lucide-react';
+import { User, Phone, Mail, Droplet, LogOut, ChevronRight, Calendar, Users, MapPin, FileText, Camera, Activity, QrCode } from 'lucide-react';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -109,6 +109,13 @@ const Profile = () => {
                         <span className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-sky-500" />
                             My Documents
+                        </span>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </Link>
+                    <Link to="/qr-scan" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50">
+                        <span className="flex items-center gap-3">
+                            <QrCode className="h-5 w-5 text-sky-500" />
+                            Scan Hospital QR
                         </span>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                     </Link>

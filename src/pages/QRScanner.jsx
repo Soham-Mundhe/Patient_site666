@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import Button from '../components/Button';
+import { db, auth } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const QRScanner = () => {
   const navigate = useNavigate();
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [docCount, setDocCount] = useState(0);
 
   const handleScan = async (detectedCodes) => {
     if (detectedCodes.length > 0) {
@@ -20,34 +23,83 @@ const QRScanner = () => {
       }
 
       const patientData = JSON.parse(savedData);
+
+      const user = auth.currentUser;
+      let documents = [];
+
+      if (user) {
+        const storageKey = `documents_${user.uid}`;
+        const rawDocs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        // Now safe to include url — it's a Firebase Storage download URL (not base64)
+        documents = rawDocs.map(doc => {
+          // ENSURE the URL is a real cloud URL, skip if it's a huge base64 string
+          const isBase64 = doc.url?.startsWith('data:');
+          return {
+            id: doc.id,
+            name: doc.name,
+            size: doc.size,
+            createdAt: doc.createdAt,
+            url: isBase64 ? '' : (doc.url || ''),
+          };
+        });
+      }
       
-      const payload = {
-        hospital_session: hospitalSession,
-        ...patientData,
-        age: Number(patientData.age || 0),
-        previous_admissions: Number(patientData.previous_hospital_admissions || 0),
-        height: Number(patientData.height || 0),
-        weight: Number(patientData.weight || 0)
-      };
+      let facilityId = '';
+      try {
+        if (hospitalSession.startsWith('http')) {
+          const urlObj = new URL(hospitalSession);
+          facilityId = urlObj.searchParams.get('facility');
+        } else {
+          facilityId = hospitalSession;
+        }
+      } catch (e) {
+        facilityId = hospitalSession;
+      }
+
+      if (!facilityId) {
+        setErrorMsg('Invalid QR code format. Could not extract facility ID.');
+        return;
+      }
 
       try {
-        const response = await fetch('/api/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
+        await addDoc(collection(db, 'facilities', facilityId, 'checkins'), {
+          patient_id: patientData.patient_id || `P-${String(Math.floor(Math.random() * 90000) + 10000)}`,
+          name: patientData.full_name?.trim() || 'Unknown Patient',
+          age: Number(patientData.age || 0),
+          gender: patientData.gender || 'Other',
+          phone_number: patientData.phone_number || '',
+          disease: patientData.chronic_diseases?.trim() || 'Routine Checkup',
+          previous_admissions: Number(patientData.previous_hospital_admissions || 0),
+          previous_surgeries: patientData.previous_surgeries || 'No',
+          family_medical_history: patientData.family_medical_history || '',
+          medications: patientData.current_medications?.trim() || 'None',
+          smoking_status: patientData.smoking_status || 'No',
+          alcohol_consumption: patientData.alcohol_consumption || 'No',
+          physical_activity_level: patientData.physical_activity_level || 'Medium',
+          height: patientData.height || '',
+          weight: patientData.weight || '',
+          bmi: patientData.bmi || '',
+          known_allergies: patientData.known_allergies || '',
+          blood_pressure: '',
+          glucose_level: '',
+          visit_date: new Date().toISOString().slice(0, 10),
+          createdAt: serverTimestamp(),
+          documents: documents, // patient's medical documents
         });
 
-        if (response.ok) {
-          setSuccess(true);
-          setErrorMsg('');
-        } else {
-          setErrorMsg('Failed to share data with the hospital. Please try again.');
-        }
+        setDocCount(documents.length);
+        setSuccess(true);
+        setErrorMsg('');
       } catch (error) {
         console.error('Error sharing data:', error);
-        setErrorMsg('Network error. Please try again.');
+        // Show slightly more helpful error message
+        if (error.code === 'permission-denied') {
+          setErrorMsg('Permission denied. Please ensure you are logged in.');
+        } else if (error.message?.includes('too large')) {
+          setErrorMsg('Data too large to share. Try removing some documents.');
+        } else {
+          setErrorMsg('Network error. Check your connection and try again.');
+        }
       }
     }
   };
@@ -65,8 +117,18 @@ const QRScanner = () => {
         {success ? (
           <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center w-full max-w-sm">
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Success!</h2>
-            <p className="text-gray-600 mb-6">Patient data successfully shared with the hospital.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check-In Complete!</h2>
+            <p className="text-gray-600 mb-3">Patient data successfully shared with the hospital.</p>
+            {docCount > 0 ? (
+              <div className="flex items-center gap-2 mb-5 px-4 py-2 bg-sky-50 text-sky-700 rounded-lg border border-sky-100 text-sm w-full justify-center">
+                <FileText size={16} />
+                <span><strong>{docCount}</strong> document{docCount !== 1 ? 's' : ''} also sent to hospital</span>
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600 mb-5 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                No documents found — upload documents in <strong>My Documents</strong> to share them next time.
+              </p>
+            )}
             <Button onClick={() => navigate('/profile')} className="w-full flex justify-center py-3">
               Return to Profile
             </Button>

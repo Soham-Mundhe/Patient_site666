@@ -1,90 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Button from '../components/Button';
-import { Lock, Mail, Smartphone, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { trackEvent, trackPageView } from '../utils/analytics';
-import { RecaptchaVerifier } from 'firebase/auth';
-import { auth } from '../firebase';
 
 const Login = () => {
     useEffect(() => {
         trackPageView('Login');
     }, []);
-    const [method, setMethod] = useState('email');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
-    const [showOTP, setShowOTP] = useState(false);
-    const [confirmationResult, setConfirmationResult] = useState(null);
+    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
+    const [info, setInfo] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, signInWithPhone } = useAuth();
-    const navigate = useNavigate();
 
-    const setupRecaptcha = (containerId) => {
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
-        }
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-            'size': 'invisible',
-            'callback': (response) => {
-                // reCAPTCHA solved, allow signInWithPhoneNumber.
-            }
-        });
-    };
+    const { login, loginWithGoogle, resetPassword } = useAuth();
+    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
-        if (method === 'mobile') {
-            if (showOTP) {
-                try {
-                    setError('');
-                    setLoading(true);
-                    await confirmationResult.confirm(otp);
-                    trackEvent('login', { method: 'phone' });
-                    navigate('/home');
-                } catch (err) {
-                    setError('Invalid OTP. Please try again.');
-                    console.error(err);
-                } finally {
-                    setLoading(false);
-                }
-                return;
-            }
-
-            try {
-                setError('');
-                setLoading(true);
-                setupRecaptcha('recaptcha-container');
-                const appVerifier = window.recaptchaVerifier;
-
-                // Prepend +91 if not present
-                const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-
-                const confirmation = await signInWithPhone(formattedPhone, appVerifier);
-                setConfirmationResult(confirmation);
-                setShowOTP(true);
-                trackEvent('otp_sent', { method: 'phone' });
-            } catch (err) {
-                setError('Failed to send OTP. ' + err.message);
-                console.error(err);
-                if (window.recaptchaVerifier) {
-                    window.recaptchaVerifier.clear();
-                }
-            } finally {
-                setLoading(false);
-            }
-            return;
-        }
-
         try {
+            setInfo('');
             setError('');
             setLoading(true);
             await login(email, password);
             trackEvent('login', { method: 'email' });
+            if (rememberMe) localStorage.setItem('remembered_email', email);
             navigate('/home');
         } catch (err) {
             setError('Failed to log in. Please check your credentials.');
@@ -94,137 +35,164 @@ const Login = () => {
         }
     };
 
+    const handleGoogleSignIn = async () => {
+        try {
+            setError('');
+            setInfo('');
+            setLoading(true);
+            await loginWithGoogle();
+            trackEvent('login', { method: 'google' });
+            navigate('/home');
+        } catch (err) {
+            setError('Failed to sign in with Google. ' + err.message);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        try {
+            setError('');
+            setInfo('');
+            if (!email.trim()) {
+                setError('Please enter your email first.');
+                return;
+            }
+            setLoading(true);
+            await resetPassword(email);
+            setInfo('Password reset email sent. Check your inbox.');
+            trackEvent('password_reset', { method: 'email' });
+        } catch (err) {
+            setError('Failed to send password reset email. ' + err.message);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-6">
-            <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                    <div className="bg-sky-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                        <span className="text-4xl">🏥</span>
+            <form className="form" onSubmit={handleLogin}>
+                {error && (
+                    <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-100 mb-2">
+                        {error}
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-                    <p className="text-gray-500 mt-2">Sign in to book appointments and manage your health.</p>
+                )}
+                {info && (
+                    <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-sm border border-sky-100 mb-2">
+                        {info}
+                    </div>
+                )}
+
+                <div className="flex-column">
+                    <label htmlFor="login-email">Email </label>
+                </div>
+                <div className="inputForm">
+                    <svg height="20" viewBox="0 0 32 32" width="20" xmlns="http://www.w3.org/2000/svg">
+                        <g id="Layer_3" data-name="Layer 3">
+                            <path d="m30.853 13.87a15 15 0 0 0 -29.729 4.082 15.1 15.1 0 0 0 12.876 12.918 15.6 15.6 0 0 0 2.016.13 14.85 14.85 0 0 0 7.715-2.145 1 1 0 1 0 -1.031-1.711 13.007 13.007 0 1 1 5.458-6.529 2.149 2.149 0 0 1 -4.158-.759v-10.856a1 1 0 0 0 -2 0v1.726a8 8 0 1 0 .2 10.325 4.135 4.135 0 0 0 7.83.274 15.2 15.2 0 0 0 .823-7.455zm-14.853 8.13a6 6 0 1 1 6-6 6.006 6.006 0 0 1 -6 6z"></path>
+                        </g>
+                    </svg>
+                    <input
+                        id="login-email"
+                        type="text"
+                        className="input"
+                        placeholder="Enter your Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    {/* Tabs */}
-                    <div className="flex bg-gray-100 p-1 rounded-lg mb-6">
-                        <button
-                            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${method === 'mobile' ? 'bg-white shadow-sm text-sky-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            onClick={() => setMethod('mobile')}
-                        >
-                            Mobile + OTP
-                        </button>
-                        <button
-                            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${method === 'email' ? 'bg-white shadow-sm text-sky-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            onClick={() => setMethod('email')}
-                        >
-                            Email + Password
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        {error && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-100 italic">
-                                <AlertCircle size={16} />
-                                {error}
-                            </div>
-                        )}
-                        {method === 'mobile' ? (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Smartphone className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <div className="absolute inset-y-0 left-10 flex items-center pointer-events-none pr-1">
-                                            <span className="text-gray-500 text-sm font-medium">+91</span>
-                                        </div>
-                                        <input
-                                            type="tel"
-                                            placeholder="98765 43210"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            disabled={showOTP || loading}
-                                            className="block w-full pl-20 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-50"
-                                        />
-                                    </div>
-                                </div>
-
-                                {showOTP && (
-                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <Lock className="h-5 w-5 text-gray-400" />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                placeholder="6-digit code"
-                                                value={otp}
-                                                onChange={(e) => setOtp(e.target.value)}
-                                                className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
-                                                required
-                                            />
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-2">Code sent to {phone}</p>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Mail className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            placeholder="you@example.com"
-                                            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Lock className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            placeholder="••••••••"
-                                            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        <div id="recaptcha-container"></div>
-
-                        <Button type="submit" disabled={loading} className="w-full py-3 text-lg shadow-md hover:shadow-lg transition-shadow">
-                            {loading ? 'Processing...' : (method === 'mobile' ? (showOTP ? 'Verify & Login' : 'Send OTP') : 'Login')}
-                        </Button>
-                    </form>
-
-                    <div className="mt-6 text-center text-sm">
-                        <p className="text-gray-500">
-                            Don't have an account?{' '}
-                            <Link to="/register" className="text-sky-600 font-medium hover:underline">
-                                Register here
-                            </Link>
-                        </p>
-                    </div>
+                <div className="flex-column">
+                    <label htmlFor="login-password">Password </label>
                 </div>
-            </div>
+                <div className="inputForm">
+                    <svg height="20" viewBox="-64 0 512 512" width="20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="m336 512h-288c-26.453125 0-48-21.523438-48-48v-224c0-26.476562 21.546875-48 48-48h288c26.453125 0 48 21.523438 48 48v224c0 26.476562-21.546875 48-48 48zm-288-288c-8.8125 0-16 7.167969-16 16v224c0 8.832031 7.1875 16 16 16h288c8.8125 0 16-7.167969 16-16v-224c0-8.832031-7.167969-16-16-16zm0 0"></path>
+                        <path d="m304 224c-8.832031 0-16-7.167969-16-16v-80c0-52.929688-43.070312-96-96-96s-96 43.070312-96 96v80c0 8.832031-7.167969 16-16 16s-16-7.167969-16-16v-80c0-70.59375 57.40625-128 128-128s128 57.40625 128 128v80c0 8.832031-7.167969 16-16 16zm0 0"></path>
+                    </svg>
+                    <input
+                        id="login-password"
+                        type="password"
+                        className="input"
+                        placeholder="Enter your Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
+
+                <div className="flex-row">
+                    <div>
+                        <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                        />
+                        <label>Remember me </label>
+                    </div>
+                    <span
+                        className="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleForgotPassword}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') handleForgotPassword();
+                        }}
+                    >
+                        Forgot password?
+                    </span>
+                </div>
+
+                <button className="button-submit" type="submit" disabled={loading}>
+                    {loading ? 'Please wait...' : 'Sign In'}
+                </button>
+
+                <p className="p">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="span">
+                        Sign Up
+                    </Link>
+                </p>
+                <p className="p line">Or With</p>
+
+                <div className="flex-row">
+                    <button className="btn google" type="button" onClick={handleGoogleSignIn} disabled={loading}>
+                        <svg version="1.1" width="20" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style={{ enableBackground: 'new 0 0 512 512' }} xmlSpace="preserve">
+                            <path style={{ fill: '#FBBB00' }} d="M113.47,309.408L95.648,375.94l-65.139,1.378C11.042,341.211,0,299.9,0,256
+	c0-42.451,10.324-82.483,28.624-117.732h0.014l57.992,10.632l25.404,57.644c-5.317,15.501-8.215,32.141-8.215,49.456
+	C103.821,274.792,107.225,292.797,113.47,309.408z"></path>
+                            <path style={{ fill: '#518EF8' }} d="M507.527,208.176C510.467,223.662,512,239.655,512,256c0,18.328-1.927,36.206-5.598,53.451
+	c-12.462,58.683-45.025,109.925-90.134,146.187l-0.014-0.014l-73.044-3.727l-10.338-64.535
+	c29.932-17.554,53.324-45.025,65.646-77.911h-136.89V208.176h138.887L507.527,208.176L507.527,208.176z"></path>
+                            <path style={{ fill: '#28B446' }} d="M416.253,455.624l0.014,0.014C372.396,490.901,316.666,512,256,512
+	c-97.491,0-182.252-54.491-225.491-134.681l82.961-67.91c21.619,57.698,77.278,98.771,142.53,98.771
+	c28.047,0,54.323-7.582,76.87-20.818L416.253,455.624z"></path>
+                            <path style={{ fill: '#F14336' }} d="M419.404,58.936l-82.933,67.896c-23.335-14.586-50.919-23.012-80.471-23.012
+	c-66.729,0-123.429,42.957-143.965,102.724l-83.397-68.276h-0.014C71.23,56.123,157.06,0,256,0
+	C318.115,0,375.068,22.126,419.404,58.936z"></path>
+                        </svg>
+                        Google
+                    </button>
+
+                    <button
+                        className="btn apple"
+                        type="button"
+                        onClick={() => setError('Apple sign-in is not set up yet.')}
+                        disabled={loading}
+                    >
+                        <svg viewBox="0 0 22.773 22.773" height="20" width="20" xmlns="http://www.w3.org/2000/svg" style={{ enableBackground: 'new 0 0 22.773 22.773' }} xmlSpace="preserve">
+                            <g>
+                                <path d="M15.769,0c0.053,0,0.106,0,0.162,0c0.13,1.606-0.483,2.806-1.228,3.675c-0.731,0.863-1.732,1.7-3.351,1.573 c-0.108-1.583,0.506-2.694,1.25-3.561C13.292,0.879,14.557,0.16,15.769,0z"></path>
+                                <path d="M20.67,16.716c0,0.016,0,0.03,0,0.045c-0.455,1.378-1.104,2.559-1.896,3.655c-0.723,0.995-1.609,2.334-3.191,2.334 c-1.367,0-2.275-0.879-3.676-0.903c-1.482-0.024-2.297,0.735-3.652,0.926c-0.155,0-0.31,0-0.462,0 c-0.995-0.144-1.798-0.932-2.383-1.642c-1.725-2.098-3.058-4.808-3.306-8.276c0-0.34,0-0.679,0-1.019 c0.105-2.482,1.311-4.5,2.914-5.478c0.846-0.52,2.009-0.963,3.304-0.765c0.555,0.086,1.122,0.276,1.619,0.464 c0.471,0.181,1.06,0.502,1.618,0.485c0.378-0.011,0.754-0.208,1.135-0.347c1.116-0.403,2.21-0.865,3.652-0.648 c1.733,0.262,2.963,1.032,3.723,2.22c-1.466,0.933-2.625,2.339-2.427,4.74C17.818,14.688,19.086,15.964,20.67,16.716z"></path>
+                            </g>
+                        </svg>
+                        Apple
+                    </button>
+                </div>
+            </form>
         </div>
     );
 };

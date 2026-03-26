@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Stethoscope, Map, LayoutGrid, Bell, User } from 'lucide-react';
+import { Home, Stethoscope, Map, LayoutGrid, User } from 'lucide-react';
 
 const BottomNav = () => {
     const navItems = [
@@ -8,7 +8,6 @@ const BottomNav = () => {
         { name: 'Doctors', icon: Stethoscope, path: '/doctors' },
         { name: 'Map', icon: Map, path: '/map' },
         { name: 'Services', icon: LayoutGrid, path: '/services' },
-        { name: 'Alerts', icon: Bell, path: '/alerts' },
         { name: 'Profile', icon: User, path: '/profile' },
     ];
 
